@@ -1,0 +1,64 @@
+<%@page import="test.gallery.dao.GalleryDao"%>
+<%@page import="test.gallery.dto.GalleryDto"%>
+<%@page import="com.oreilly.servlet.multipart.DefaultFileRenamePolicy"%>
+<%@page import="com.oreilly.servlet.MultipartRequest"%>
+<%@page import="java.io.File"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%
+	// Tomcat 서버를 실행했을때 WebContent/upload 폴더의 실제 경로 얻어오기
+	String realPath=application.getRealPath("/upload");
+	System.out.println("realPath:"+realPath);
+	//해당 경로를 access 할수 있는 파일 객체 생성 (만약 초반에 못만들었으면 이 코드를 이용해서 생성)
+		File f=new File(realPath);
+		if(!f.exists()){ //만일  폴더가 존재 하지 않으면
+			f.mkdir(); //upload 폴더 만들기 
+		}
+	
+	//최대 업로드 사이즈 설정
+	int sizeLimit=1024*1024*100; // 100MByte
+	
+	// <form enctype="multipart/form-data"> 로 전송된 값은 아래의 객체를 이용해서 추출한다.
+	MultipartRequest mr=new MultipartRequest(request,
+			realPath,
+			sizeLimit,
+			"utf-8",
+			new DefaultFileRenamePolicy());
+	
+	// /gallery/list.jsp페이지로 리다이렉트 이동해서 업로드된 이미지 목록을 보여주는 프로그래밍
+	//폼전송된 내용 추출하기 (MultipartRequest를 이용해서 get한다)
+	
+	//이미지 설명 caption
+	String caption=mr.getParameter("caption");
+	//원본 파일명 
+	String orgFileName=mr.getOriginalFileName("image");
+	//upload 폴더에 저장된 파일명 
+	String saveFileName=mr.getFilesystemName("image"); 
+	//업로드한 클라이언트의 아이디
+	String writer=(String)session.getAttribute("id");
+
+	System.out.println("caption : "+caption);
+	System.out.println("imagePath"+orgFileName);
+	System.out.println("imagePath"+saveFileName);
+
+	//업로드된 파일의 정보를 GalleryDto 에 담고
+	GalleryDto dto=new GalleryDto();
+	dto.setCaption(caption);
+	dto.setImagePath("/upload/"+saveFileName);
+	dto.setWriter(writer);
+	//DB 에 저장
+	GalleryDao.getInstance().insert(dto);
+	//목록보기로 리다이렉트 이동 응답
+	String cPath=request.getContextPath();
+	response.sendRedirect(cPath+"/gallery/list.jsp");
+
+%>    
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>/gallery/private/upload.jsp</title>
+</head>
+<body>
+</body>
+</html>
